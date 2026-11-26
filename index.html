@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback-Coach – ein KI-Skill für bessere Feedback-Gespräche</title>
+<meta name="description" content="Ein kostenloser Skill für Claude und andere KI-Assistenten, der dir hilft, Feedback klar, fair und umsetzbar zu formulieren. Er stellt Fragen, statt dir den Text zu schreiben.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F5F7;
+    --ink: #1C2333;
+    --slate: #5B6578;
+    --rule: #D6DCE4;
+    --marker: #F2B33D;
+    --marker-soft: #FBE4AE;
+    --white: #FFFFFF;
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+  a { color: var(--ink); text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--marker); }
+  a:hover { text-decoration-color: var(--ink); }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+  .measure { max-width: 40rem; }
+
+  /* Hero */
+  .hero { padding: 4.5rem 0 4rem; display: grid; grid-template-columns: 1fr; gap: 3rem; align-items: center; }
+  @media (min-width: 900px) { .hero { grid-template-columns: 1.05fr 1fr; padding: 6rem 0 5rem; gap: 4rem; } }
+  h1, h2, h3 { font-family: var(--display); line-height: 1.1; margin: 0; }
+  h1 { font-size: clamp(2.5rem, 6vw, 4.25rem); font-weight: 800; letter-spacing: -0.02em; }
+  .lede { font-size: 1.25rem; color: var(--slate); margin: 1.5rem 0 2rem; max-width: 34rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .btn {
+    font: 700 1rem/1 var(--body);
+    padding: 1rem 1.4rem;
+    border-radius: 999px;
+    border: 2px solid var(--ink);
+    background: var(--ink);
+    color: var(--white);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn:hover { background: #2C3650; border-color: #2C3650; }
+  .btn.secondary { background: transparent; color: var(--ink); }
+  .btn.secondary:hover { background: var(--white); }
+  .status { min-height: 1.6em; margin: 0.75rem 0 0; font-size: 1rem; color: var(--slate); }
+
+  /* The memorable thing: judgment becomes observation */
+  .demo { background: var(--white); border-radius: 28px; padding: 2rem; box-shadow: 0 1px 0 var(--rule), 0 24px 48px -32px rgba(28,35,51,.35); }
+  .demo-q { font-family: var(--display); font-weight: 700; font-size: 1.35rem; line-height: 1.25; margin: 0 0 1.5rem; }
+  .bubble { border-radius: 20px 20px 20px 6px; padding: 1rem 1.25rem; margin: 0 0 0.9rem; font-size: 1.15rem; }
+  .bubble.judgment { background: var(--paper); color: var(--slate); }
+  .bubble.judgment s { text-decoration-thickness: 2px; text-decoration-color: var(--ink); }
+  .bubble.observation { background: var(--marker-soft); color: var(--ink); border-radius: 20px 20px 6px 20px; margin-left: 2rem; }
+  .who { display: block; font-size: 0.85rem; color: var(--slate); margin-bottom: 0.2rem; }
+  .demo-tabs { display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .demo-tabs button {
+    font: 700 0.95rem/1 var(--body); padding: 0.6rem 0.9rem; border-radius: 999px;
+    border: 2px solid var(--rule); background: transparent; color: var(--ink); cursor: pointer;
+  }
+  .demo-tabs button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--white); }
+  .observation-text { transition: opacity .25s ease; }
+  @media (prefers-reduced-motion: reduce) { .observation-text { transition: none; } }
+
+  /* Sections */
+  section { padding: 4rem 0; border-top: 2px solid var(--rule); }
+  h2 { font-size: clamp(1.9rem, 4vw, 2.6rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1rem; }
+  h3 { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.4rem; }
+  p { margin: 0 0 1rem; }
+  .intro { color: var(--slate); margin-bottom: 2.5rem; }
+
+  .modes { display: grid; gap: 2rem; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .modes { grid-template-columns: repeat(3, 1fr); } }
+  .mode p { margin: 0; }
+  .mode .example { display: block; margin-top: 0.8rem; font-style: italic; color: var(--slate); }
+
+  .ways { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .ways { grid-template-columns: 1.2fr 1fr 1fr; } }
+  .way { background: var(--white); border-radius: 20px; padding: 1.75rem; }
+  .way.easy { background: var(--ink); color: var(--white); }
+  .way.easy a { color: var(--white); }
+  .way.easy .tag { background: var(--marker); color: var(--ink); }
+  .tag { display: inline-block; font-size: 0.9rem; font-weight: 700; background: var(--paper); border-radius: 999px; padding: 0.25rem 0.75rem; margin-bottom: 1rem; }
+  .way ol { margin: 1rem 0 0; padding-left: 1.3rem; }
+  .way li { margin-bottom: 0.5rem; }
+  .way .btn { margin-top: 1rem; }
+  .way.easy .btn { background: var(--marker); border-color: var(--marker); color: var(--ink); }
+  .way.easy .btn:hover { background: #F6C463; border-color: #F6C463; }
+  .way.easy .status { color: #C9D0DC; }
+  .note { margin-top: 1.5rem; color: var(--slate); font-size: 1rem; }
+
+  .two { display: grid; gap: 3rem; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .two { grid-template-columns: 1fr 1fr; } }
+  .plain { list-style: none; padding: 0; margin: 0; }
+  .plain li { padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
+  .plain li:first-child { padding-top: 0; }
+  .plain strong { display: block; }
+  .plain span { color: var(--slate); }
+
+  footer.wrap { padding-bottom: 4rem; }
+  footer .inner { padding-top: 3rem; border-top: 2px solid var(--rule); color: var(--slate); font-size: 1rem; }
+  footer p { margin: 0 0 0.5rem; }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="hero">
+    <div>
+      <h1>Feedback, das ankommt.</h1>
+      <p class="lede">Der Feedback-Coach ist ein kostenloser Skill für Claude und andere KI-Assistenten. Er schreibt dein Feedback nicht für dich. Er stellt dir Fragen, bis du selbst die Worte gefunden hast.</p>
+      <div class="actions">
+        <button class="btn" type="button" data-copy>Text für meine KI kopieren</button>
+        <a class="btn secondary" href="feedback-coach.zip" download>Skill herunterladen</a>
+      </div>
+      <p class="status" data-status role="status" aria-live="polite"></p>
+    </div>
+
+    <figure class="demo" aria-labelledby="demo-q" style="margin:0">
+      <p class="demo-q" id="demo-q">„Was hat die Person konkret getan oder gesagt?“</p>
+      <p class="bubble judgment"><span class="who">Vorher</span><s data-judgment>Sie ist unprofessionell.</s></p>
+      <p class="bubble observation"><span class="who">Nachher</span><span class="observation-text" data-observation>Sie hat den Bericht verschickt, ohne die Zahlen zu prüfen.</span></p>
+      <div class="demo-tabs" role="group" aria-label="Beispiel wählen">
+        <button type="button" aria-pressed="true" data-example="0">Kritik</button>
+        <button type="button" aria-pressed="false" data-example="1">Lob</button>
+        <button type="button" aria-pressed="false" data-example="2">Führungskraft</button>
+      </div>
+    </figure>
+  </header>
+
+  <section aria-labelledby="modes">
+    <h2 id="modes">Was der Coach mit dir macht</h2>
+    <p class="intro measure">Du sagst, worum es geht. Der Coach fragt nach: eine Frage nach der anderen, freundlich, aber direkt. Er arbeitet in drei Modi.</p>
+    <div class="modes">
+      <div class="mode">
+        <h3>Gespräch vorbereiten</h3>
+        <p>Ihr geht ein echtes Gespräch durch: Was ist passiert, was hat die Person getan, was hat das bewirkt, was wünschst du dir, und welche Frage stellst du ihr.</p>
+        <span class="example">„Ich will meiner Kollegin Feedback geben.“</span>
+      </div>
+      <div class="mode">
+        <h3>Entwurf prüfen</h3>
+        <p>Du bringst einen fertigen Text mit. Der Coach zeigt dir, was schon gut ist und wo es hakt, und fragt dich, wie du es selbst verbessern würdest.</p>
+        <span class="example">„Kannst du meinen Entwurf prüfen?“</span>
+      </div>
+      <div class="mode">
+        <h3>Üben</h3>
+        <p>Du trainierst an Übungsfällen auf Deutsch oder Englisch, vom konkreten Lob bis zum Konflikt im Team. Danach siehst du typische Fallen und eine Beispielantwort.</p>
+        <span class="example">„Ich möchte Feedback üben.“</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="start">
+    <h2 id="start">So legst du los</h2>
+    <p class="intro measure">Du brauchst keinen GitHub-Account und keine Technik-Kenntnisse. Such dir einen der drei Wege aus.</p>
+    <div class="ways">
+      <div class="way easy">
+        <span class="tag">Am einfachsten, mit jeder KI</span>
+        <h3>Text kopieren und einfügen</h3>
+        <ol>
+          <li>Klick auf den Button. Der komplette Coach landet in deiner Zwischenablage.</li>
+          <li>Öffne einen neuen Chat in deiner KI, zum Beispiel Claude, ChatGPT oder Gemini.</li>
+          <li>Füge den Text ein und schick ihn ab. Der Coach fragt dich dann, wobei du Hilfe brauchst.</li>
+        </ol>
+        <button class="btn" type="button" data-copy>Text für meine KI kopieren</button>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+      </div>
+      <div class="way">
+        <span class="tag">Dauerhaft in Claude</span>
+        <h3>Als Skill installieren</h3>
+        <ol>
+          <li><a href="feedback-coach.zip" download>Lade den Skill herunter</a>. Du bekommst eine ZIP-Datei, die du nicht entpacken musst.</li>
+          <li>Öffne in Claude <strong>Plugins &gt; Skills</strong> und lade die ZIP-Datei hoch.</li>
+          <li>Schalte den Skill ein. Ab jetzt reicht ein Satz wie „Ich will Feedback geben“.</li>
+        </ol>
+      </div>
+      <div class="way">
+        <span class="tag">Andere KI-Assistenten</span>
+        <h3>Deine KI fragen</h3>
+        <p>Einige Assistenten wie Gemini unterstützen ebenfalls Skills. Bei allen anderen hilft eine einfache Frage an deine KI:</p>
+        <p><em>„Wie kann ich dir eine Anleitungsdatei geben, die du in jedem Chat befolgst?“</em></p>
+        <p>Die Datei dazu ist die <a href="feedback-coach/SKILL.md">SKILL.md</a>.</p>
+      </div>
+    </div>
+    <p class="note measure">Beim Kopieren gilt der Coach nur für diesen einen Chat. Wenn du ihn öfter nutzt, ist die Installation als Skill bequemer.</p>
+  </section>
+
+  <section aria-labelledby="basis">
+    <div class="two">
+      <div>
+        <h2 id="basis">Worauf er sich stützt</h2>
+        <p class="measure">Das Gespräch folgt dem bekannten Modell Situation, Verhalten, Wirkung. Ob ein Feedback gut ist, entscheiden Erkenntnisse aus der Feedback-Forschung. Im Gespräch bleibt die Theorie im Hintergrund, der Coach spricht Alltagssprache.</p>
+        <ul class="plain">
+          <li><strong>Verhalten statt Person</strong><span>Feedback, das auf die Person zielt, verschlechtert die Leistung oft sogar. Kluger &amp; DeNisi, 1996</span></li>
+          <li><strong>Ziel, Rückmeldung, nächster Schritt</strong><span>Gutes Feedback klärt, wohin es geht und wie es weitergeht. Hattie &amp; Timperley, 2007</span></li>
+          <li><strong>Raum für eigene Lösungen</strong><span>Zu detaillierte Vorgaben bremsen eigenständiges Lernen. Goodman, Wood &amp; Hendrickx, 2004</span></li>
+          <li><strong>Beobachtung statt Deutung</strong><span>Feedback wirkt nur, wenn es akzeptiert wird. Ilgen, Fisher &amp; Taylor, 1979</span></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Was er bewusst nicht tut</h2>
+        <ul class="plain">
+          <li><strong>Dein Feedback schreiben</strong><span>Die Worte kommen von dir. So klingen sie nach dir, und du bleibst im Gespräch dabei.</span></li>
+          <li><strong>Menschen oder Leistung bewerten</strong><span>Keine Beurteilungen, Abmahnungen oder Kündigungen. Dafür sind HR, Führungskraft oder Betriebsrat da.</span></li>
+          <li><strong>Ernste Fälle als Feedback behandeln</strong><span>Bei Belästigung, Diskriminierung oder Gewalt verweist er auf passende Anlaufstellen.</span></li>
+          <li><strong>Persönliche Daten speichern</strong><span>Lass Namen und erkennbare Details weg. „Die Kollegin“ oder „mein Teamleiter“ reicht völlig.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+<footer class="wrap">
+  <div class="inner">
+  <p>Entwickelt von Svenja Gaab. Kostenlos nutzbar unter der MIT-Lizenz: Du darfst den Skill verwenden, anpassen und weitergeben.</p>
+  <p><a data-repo href="README.md">Quellcode und Anleitung auf GitHub</a></p>
+  </div>
+</footer>
+
+<script>
+  // Examples for the judgment-to-observation demo
+  const examples = [
+    ["Sie ist unprofessionell.", "Sie hat den Bericht verschickt, ohne die Zahlen zu prüfen."],
+    ["Du bist super!", "Dass du die offenen Fragen vorab gesammelt hast, hat das Meeting halbiert."],
+    ["Du planst schlecht.", "Die Analyse, an der ich zwei Tage saß, wurde am Freitag nicht mehr gebraucht."]
+  ];
+  const judgment = document.querySelector("[data-judgment]");
+  const observation = document.querySelector("[data-observation]");
+  const tabs = document.querySelectorAll("[data-example]");
+  tabs.forEach(tab => tab.addEventListener("click", () => {
+    const [j, o] = examples[Number(tab.dataset.example)];
+    tabs.forEach(t => t.setAttribute("aria-pressed", String(t === tab)));
+    observation.style.opacity = 0;
+    setTimeout(() => { judgment.textContent = j; observation.textContent = o; observation.style.opacity = 1; }, 150);
+  }));
+
+  // Link to the GitHub repo when the page runs on GitHub Pages (user.github.io/repo)
+  const repoLink = document.querySelector("[data-repo]");
+  if (location.hostname.endsWith(".github.io")) {
+    const user = location.hostname.split(".")[0];
+    const repo = location.pathname.split("/").filter(Boolean)[0];
+    repoLink.href = repo ? `https://github.com/${user}/${repo}` : `https://github.com/${user}`;
+  }
+
+  // Copy the full coach, with a start sentence, to the clipboard
+  const START = "Arbeite in diesem Chat als Feedback-Coach nach den folgenden Anweisungen. Beginne, indem du mich fragst, wobei ich Hilfe brauche.\n\n";
+  let skillText = null;
+  async function loadSkill() {
+    if (skillText) return skillText;
+    const res = await fetch("feedback-coach/SKILL.md");
+    if (!res.ok) throw new Error(res.status);
+    skillText = START + await res.text();
+    return skillText;
+  }
+  document.querySelectorAll("[data-copy]").forEach(btn => btn.addEventListener("click", async () => {
+    const status = btn.parentElement.querySelector("[data-status]") || document.querySelector("[data-status]");
+    try {
+      const text = await loadSkill();
+      await navigator.clipboard.writeText(text);
+      status.textContent = "Kopiert. Füge den Text jetzt in einen neuen Chat ein.";
+    } catch (e) {
+      status.innerHTML = 'Kopieren hat nicht geklappt. Öffne stattdessen die <a href="feedback-coach/SKILL.md">SKILL.md</a>, markiere alles und kopiere es.';
+    }
+  }));
+</script>
+</body>
+</html>
